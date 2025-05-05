@@ -6,7 +6,7 @@ options:
     cmake_opt: ''
     comment: ''
     copyright: ''
-    description: ''
+    description: Get sample data from https://www.sdrplay.com/iq-demo-files/
     gen_cmake: 'On'
     gen_linking: dynamic
     generate_options: qt_gui
@@ -45,11 +45,11 @@ blocks:
     coordinate: [272, 104.0]
     rotation: 0
     state: enabled
-- name: decim_samp_rate
+- name: rf_decim
   id: variable
   parameters:
     comment: ''
-    value: samp_rate/5
+    value: '30'
   states:
     bus_sink: false
     bus_source: false
@@ -68,8 +68,8 @@ blocks:
     rangeType: float
     start: '0'
     step: '0.1'
-    stop: '100'
-    value: '66'
+    stop: '2'
+    value: '1'
     widget: counter_slider
   states:
     bus_sink: false
@@ -82,7 +82,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '300000'
+    value: '333333'
   states:
     bus_sink: false
     bus_source: false
@@ -120,24 +120,16 @@ blocks:
     coordinate: [400, 16.0]
     rotation: 0
     state: enabled
-- name: sideband_filter
-  id: variable_band_pass_filter_taps
+- name: ssb_factor
+  id: variable
   parameters:
-    beta: '6.76'
     comment: ''
-    gain: '1.0'
-    high_cutoff_freq: '3500'
-    low_cutoff_freq: '300'
-    samp_rate: audio_rate
-    type: complex_band_pass
-    value: ''
-    width: '200'
-    win: window.WIN_HAMMING
+    value: -1.0  if sideband != 0 else 1.0
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1192, 28.0]
+    coordinate: [512, 112.0]
     rotation: 0
     state: enabled
 - name: tune
@@ -172,14 +164,35 @@ blocks:
     rangeType: float
     start: '0'
     step: '0.1'
-    stop: '10'
-    value: '6'
+    stop: '2'
+    value: '1'
     widget: counter_slider
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
     coordinate: [672, 24.0]
+    rotation: 0
+    state: enabled
+- name: analog_agc2_xx_0
+  id: analog_agc2_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    attack_rate: 1e-1
+    comment: ''
+    decay_rate: 1e-2
+    gain: '1.0'
+    max_gain: '65536'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    reference: '1.0'
+    type: complex
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [624, 288.0]
     rotation: 0
     state: enabled
 - name: audio_sink_0
@@ -196,7 +209,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [792, 512.0]
+    coordinate: [792, 456.0]
     rotation: 0
     state: enabled
 - name: blocks_complex_to_real_0
@@ -212,7 +225,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [448, 520.0]
+    coordinate: [456, 464.0]
     rotation: 0
     state: enabled
 - name: blocks_float_to_complex_0
@@ -228,27 +241,10 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [272, 224.0]
+    coordinate: [272, 232.0]
     rotation: 0
     state: enabled
-- name: blocks_freqshift_cc_0
-  id: blocks_freqshift_cc
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    freq: tune
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    sample_rate: samp_rate
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [784, 320.0]
-    rotation: 0
-    state: enabled
-- name: blocks_multiply_const_vxx_1
+- name: blocks_multiply_const_vxx_0
   id: blocks_multiply_const_vxx
   parameters:
     affinity: ''
@@ -257,13 +253,13 @@ blocks:
     const: volume
     maxoutbuf: '0'
     minoutbuf: '0'
-    type: float
+    type: complex
     vlen: '1'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [608, 512.0]
+    coordinate: [280, 456.0]
     rotation: 0
     state: enabled
 - name: blocks_selector_0
@@ -288,7 +284,7 @@ blocks:
     bus_structure: null
     coordinate: [240, 480.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: blocks_swapiq_0
   id: blocks_swapiq
   parameters:
@@ -304,7 +300,7 @@ blocks:
     bus_structure: null
     coordinate: [104, 536.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: blocks_throttle2_0
   id: blocks_throttle2
   parameters:
@@ -323,7 +319,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [448, 224.0]
+    coordinate: [440, 232.0]
     rotation: 0
     state: enabled
 - name: blocks_wavfile_source_0
@@ -341,31 +337,28 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [48, 224.0]
+    coordinate: [48, 232.0]
     rotation: 0
     state: enabled
-- name: filter_fft_low_pass_filter_0
-  id: filter_fft_low_pass_filter
+- name: freq_xlating_fir_filter_xxx_0
+  id: freq_xlating_fir_filter_xxx
   parameters:
     affinity: ''
     alias: ''
-    beta: '6.76'
+    center_freq: tune
     comment: ''
-    cutoff_freq: '3500'
-    decim: '1'
-    gain: rf_gain
+    decim: rf_decim
     maxoutbuf: '0'
     minoutbuf: '0'
-    nthreads: '1'
-    samp_rate: audio_rate
+    samp_rate: samp_rate
+    taps: firdes.complex_band_pass(rf_gain, samp_rate, -3500, -200, 100) if sideband
+      != 0 else firdes.complex_band_pass(rf_gain, samp_rate, 200, 3500, 100)
     type: ccc
-    width: '50'
-    win: window.WIN_HAMMING
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1152, 268.0]
+    coordinate: [800, 312.0]
     rotation: 0
     state: enabled
 - name: qtgui_sink_x_0
@@ -380,9 +373,9 @@ blocks:
     gui_hint: ''
     maxoutbuf: '0'
     minoutbuf: '0'
-    name: '""'
+    name: '"AF"'
     plotconst: 'False'
-    plotfreq: 'True'
+    plotfreq: 'False'
     plottime: 'False'
     plotwaterfall: 'True'
     rate: '10'
@@ -394,7 +387,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [448, 576.0]
+    coordinate: [448, 528.0]
     rotation: 0
     state: enabled
 - name: qtgui_sink_x_1
@@ -411,7 +404,7 @@ blocks:
     minoutbuf: '0'
     name: '"RF"'
     plotconst: 'False'
-    plotfreq: 'True'
+    plotfreq: 'False'
     plottime: 'False'
     plotwaterfall: 'True'
     rate: '50'
@@ -423,7 +416,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [872, 176.0]
+    coordinate: [800, 184.0]
     rotation: 0
     state: enabled
 - name: qtgui_sink_x_1_0
@@ -452,7 +445,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1320, 424.0]
+    coordinate: [1056, 360.0]
     rotation: 0
     state: enabled
 - name: rational_resampler_xxx_0
@@ -461,18 +454,18 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    decim: samp_rate
+    decim: int(samp_rate/rf_decim)
     fbw: '0'
-    interp: audio_rate
+    interp: '48000'
     maxoutbuf: '0'
     minoutbuf: '0'
     taps: '[]'
-    type: ccc
+    type: fff
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [984, 304.0]
+    coordinate: [600, 432.0]
     rotation: 0
     state: enabled
 - name: virtual_sink_0
@@ -485,7 +478,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1376, 312.0]
+    coordinate: [1064, 288.0]
     rotation: 0
     state: enabled
 - name: virtual_source_0
@@ -503,20 +496,21 @@ blocks:
     state: enabled
 
 connections:
-- [blocks_complex_to_real_0, '0', blocks_multiply_const_vxx_1, '0']
+- [analog_agc2_xx_0, '0', freq_xlating_fir_filter_xxx_0, '0']
+- [blocks_complex_to_real_0, '0', rational_resampler_xxx_0, '0']
 - [blocks_float_to_complex_0, '0', blocks_throttle2_0, '0']
-- [blocks_freqshift_cc_0, '0', rational_resampler_xxx_0, '0']
-- [blocks_multiply_const_vxx_1, '0', audio_sink_0, '0']
-- [blocks_selector_0, '0', blocks_complex_to_real_0, '0']
-- [blocks_selector_0, '0', qtgui_sink_x_0, '0']
+- [blocks_multiply_const_vxx_0, '0', blocks_complex_to_real_0, '0']
+- [blocks_multiply_const_vxx_0, '0', qtgui_sink_x_0, '0']
+- [blocks_selector_0, '0', blocks_multiply_const_vxx_0, '0']
 - [blocks_swapiq_0, '0', blocks_selector_0, '1']
-- [blocks_throttle2_0, '0', blocks_freqshift_cc_0, '0']
+- [blocks_throttle2_0, '0', analog_agc2_xx_0, '0']
 - [blocks_throttle2_0, '0', qtgui_sink_x_1, '0']
 - [blocks_wavfile_source_0, '0', blocks_float_to_complex_0, '0']
 - [blocks_wavfile_source_0, '1', blocks_float_to_complex_0, '1']
-- [filter_fft_low_pass_filter_0, '0', qtgui_sink_x_1_0, '0']
-- [filter_fft_low_pass_filter_0, '0', virtual_sink_0, '0']
-- [rational_resampler_xxx_0, '0', filter_fft_low_pass_filter_0, '0']
+- [freq_xlating_fir_filter_xxx_0, '0', qtgui_sink_x_1_0, '0']
+- [freq_xlating_fir_filter_xxx_0, '0', virtual_sink_0, '0']
+- [rational_resampler_xxx_0, '0', audio_sink_0, '0']
+- [virtual_source_0, '0', blocks_multiply_const_vxx_0, '0']
 - [virtual_source_0, '0', blocks_selector_0, '0']
 - [virtual_source_0, '0', blocks_swapiq_0, '0']
 

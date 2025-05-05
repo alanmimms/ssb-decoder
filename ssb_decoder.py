@@ -7,15 +7,16 @@
 # GNU Radio Python Flow Graph
 # Title: SSB decoder
 # Author: alan
+# Description: Get sample data from https://www.sdrplay.com/iq-demo-files/
 # GNU Radio version: 3.10.9.2
 
 from PyQt5 import Qt
 from gnuradio import qtgui
 from PyQt5 import QtCore
 from PyQt5.QtCore import QObject, pyqtSlot
+from gnuradio import analog
 from gnuradio import audio
 from gnuradio import blocks
-import math
 from gnuradio import filter
 from gnuradio.filter import firdes
 from gnuradio import gr
@@ -65,20 +66,20 @@ class ssb_decoder(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 300000
-        self.audio_rate = audio_rate = 48000
-        self.volume = volume = 6
-        self.tune = tune = -40000
-        self.sideband_filter = sideband_filter = firdes.complex_band_pass(1.0, audio_rate, 300, 3500, 200, window.WIN_HAMMING, 6.76)
         self.sideband = sideband = 1
-        self.rf_gain = rf_gain = 10
-        self.decim_samp_rate = decim_samp_rate = samp_rate/5
+        self.volume = volume = 1
+        self.tune = tune = -40000
+        self.ssb_factor = ssb_factor = -1.0  if sideband != 0 else 1.0
+        self.samp_rate = samp_rate = 333333
+        self.rf_gain = rf_gain = 1
+        self.rf_decim = rf_decim = 30
+        self.audio_rate = audio_rate = 48000
 
         ##################################################
         # Blocks
         ##################################################
 
-        self._volume_range = qtgui.Range(0, 10, 0.1, 6, 200)
+        self._volume_range = qtgui.Range(0, 2, 0.1, 1, 200)
         self._volume_win = qtgui.RangeWidget(self._volume_range, self.set_volume, "Volume", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._volume_win)
         self._tune_range = qtgui.Range(-250000, 250000, 100, -40000, 200)
@@ -100,12 +101,12 @@ class ssb_decoder(gr.top_block, Qt.QWidget):
             lambda i: self.set_sideband(self._sideband_options[i]))
         # Create the radio buttons
         self.top_layout.addWidget(self._sideband_tool_bar)
-        self._rf_gain_range = qtgui.Range(0, 100, 0.1, 10, 200)
+        self._rf_gain_range = qtgui.Range(0, 2, 0.1, 1, 200)
         self._rf_gain_win = qtgui.RangeWidget(self._rf_gain_range, self.set_rf_gain, "RF Gain", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._rf_gain_win)
-        self.rational_resampler_xxx_0 = filter.rational_resampler_ccc(
-                interpolation=audio_rate,
-                decimation=samp_rate,
+        self.rational_resampler_xxx_0 = filter.rational_resampler_fff(
+                interpolation=48000,
+                decimation=(int(samp_rate/rf_decim)),
                 taps=[],
                 fractional_bw=0)
         self.qtgui_sink_x_1_0 = qtgui.sink_c(
@@ -132,7 +133,7 @@ class ssb_decoder(gr.top_block, Qt.QWidget):
             0, #fc
             samp_rate, #bw
             "RF", #name
-            True, #plotfreq
+            False, #plotfreq
             True, #plotwaterfall
             False, #plottime
             False, #plotconst
@@ -149,8 +150,8 @@ class ssb_decoder(gr.top_block, Qt.QWidget):
             window.WIN_BLACKMAN_hARRIS, #wintype
             0, #fc
             audio_rate, #bw
-            "", #name
-            True, #plotfreq
+            "AF", #name
+            False, #plotfreq
             True, #plotwaterfall
             False, #plottime
             False, #plotconst
@@ -162,37 +163,31 @@ class ssb_decoder(gr.top_block, Qt.QWidget):
         self.qtgui_sink_x_0.enable_rf_freq(False)
 
         self.top_layout.addWidget(self._qtgui_sink_x_0_win)
-        self.filter_fft_low_pass_filter_0 = filter.fft_filter_ccc(1, firdes.low_pass(rf_gain, audio_rate, 3500, 50, window.WIN_HAMMING, 6.76), 1)
+        self.freq_xlating_fir_filter_xxx_0 = filter.freq_xlating_fir_filter_ccc(rf_decim, firdes.complex_band_pass(rf_gain, samp_rate, -3500, -200, 100) if sideband != 0 else firdes.complex_band_pass(rf_gain, samp_rate, 200, 3500, 100), tune, samp_rate)
         self.blocks_wavfile_source_0 = blocks.wavfile_source('/home/alan/ham/sample-iq-data/40m/SDRuno_20200912_004330Z_7150kHz.wav', True)
         self.blocks_throttle2_0 = blocks.throttle( gr.sizeof_gr_complex*1, samp_rate, True, 0 if "auto" == "auto" else max( int(float(0.1) * samp_rate) if "auto" == "time" else int(0.1), 1) )
-        self.blocks_swapiq_0 = blocks.swap_iq(1, gr.sizeof_gr_complex)
-        self.blocks_selector_0 = blocks.selector(gr.sizeof_gr_complex*1,sideband,0)
-        self.blocks_selector_0.set_enabled(True)
-        self.blocks_multiply_const_vxx_1 = blocks.multiply_const_ff(volume)
-        self.blocks_freqshift_cc_0 = blocks.rotator_cc(2.0*math.pi*tune/samp_rate)
+        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_cc(volume)
         self.blocks_float_to_complex_0 = blocks.float_to_complex(1)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
         self.audio_sink_0 = audio.sink(audio_rate, '', True)
+        self.analog_agc2_xx_0 = analog.agc2_cc((1e-1), (1e-2), 1.0, 1.0, 65536)
 
 
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.blocks_complex_to_real_0, 0), (self.blocks_multiply_const_vxx_1, 0))
+        self.connect((self.analog_agc2_xx_0, 0), (self.freq_xlating_fir_filter_xxx_0, 0))
+        self.connect((self.blocks_complex_to_real_0, 0), (self.rational_resampler_xxx_0, 0))
         self.connect((self.blocks_float_to_complex_0, 0), (self.blocks_throttle2_0, 0))
-        self.connect((self.blocks_freqshift_cc_0, 0), (self.rational_resampler_xxx_0, 0))
-        self.connect((self.blocks_multiply_const_vxx_1, 0), (self.audio_sink_0, 0))
-        self.connect((self.blocks_selector_0, 0), (self.blocks_complex_to_real_0, 0))
-        self.connect((self.blocks_selector_0, 0), (self.qtgui_sink_x_0, 0))
-        self.connect((self.blocks_swapiq_0, 0), (self.blocks_selector_0, 1))
-        self.connect((self.blocks_throttle2_0, 0), (self.blocks_freqshift_cc_0, 0))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_complex_to_real_0, 0))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.qtgui_sink_x_0, 0))
+        self.connect((self.blocks_throttle2_0, 0), (self.analog_agc2_xx_0, 0))
         self.connect((self.blocks_throttle2_0, 0), (self.qtgui_sink_x_1, 0))
-        self.connect((self.blocks_wavfile_source_0, 1), (self.blocks_float_to_complex_0, 1))
         self.connect((self.blocks_wavfile_source_0, 0), (self.blocks_float_to_complex_0, 0))
-        self.connect((self.filter_fft_low_pass_filter_0, 0), (self.blocks_selector_0, 0))
-        self.connect((self.filter_fft_low_pass_filter_0, 0), (self.blocks_swapiq_0, 0))
-        self.connect((self.filter_fft_low_pass_filter_0, 0), (self.qtgui_sink_x_1_0, 0))
-        self.connect((self.rational_resampler_xxx_0, 0), (self.filter_fft_low_pass_filter_0, 0))
+        self.connect((self.blocks_wavfile_source_0, 1), (self.blocks_float_to_complex_0, 1))
+        self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.blocks_multiply_const_vxx_0, 0))
+        self.connect((self.freq_xlating_fir_filter_xxx_0, 0), (self.qtgui_sink_x_1_0, 0))
+        self.connect((self.rational_resampler_xxx_0, 0), (self.audio_sink_0, 0))
 
 
     def closeEvent(self, event):
@@ -203,66 +198,64 @@ class ssb_decoder(gr.top_block, Qt.QWidget):
 
         event.accept()
 
-    def get_samp_rate(self):
-        return self.samp_rate
-
-    def set_samp_rate(self, samp_rate):
-        self.samp_rate = samp_rate
-        self.set_decim_samp_rate(self.samp_rate/5)
-        self.blocks_freqshift_cc_0.set_phase_inc(2.0*math.pi*self.tune/self.samp_rate)
-        self.blocks_throttle2_0.set_sample_rate(self.samp_rate)
-        self.qtgui_sink_x_1.set_frequency_range(0, self.samp_rate)
-        self.qtgui_sink_x_1_0.set_frequency_range(0, self.samp_rate)
-
-    def get_audio_rate(self):
-        return self.audio_rate
-
-    def set_audio_rate(self, audio_rate):
-        self.audio_rate = audio_rate
-        self.set_sideband_filter(firdes.complex_band_pass(1.0, self.audio_rate, 300, 3500, 200, window.WIN_HAMMING, 6.76))
-        self.filter_fft_low_pass_filter_0.set_taps(firdes.low_pass(self.rf_gain, self.audio_rate, 3500, 50, window.WIN_HAMMING, 6.76))
-        self.qtgui_sink_x_0.set_frequency_range(0, self.audio_rate)
-
-    def get_volume(self):
-        return self.volume
-
-    def set_volume(self, volume):
-        self.volume = volume
-        self.blocks_multiply_const_vxx_1.set_k(self.volume)
-
-    def get_tune(self):
-        return self.tune
-
-    def set_tune(self, tune):
-        self.tune = tune
-        self.blocks_freqshift_cc_0.set_phase_inc(2.0*math.pi*self.tune/self.samp_rate)
-
-    def get_sideband_filter(self):
-        return self.sideband_filter
-
-    def set_sideband_filter(self, sideband_filter):
-        self.sideband_filter = sideband_filter
-
     def get_sideband(self):
         return self.sideband
 
     def set_sideband(self, sideband):
         self.sideband = sideband
         self._sideband_callback(self.sideband)
-        self.blocks_selector_0.set_input_index(self.sideband)
+        self.set_ssb_factor(-1.0  if self.sideband != 0 else 1.0)
+        self.freq_xlating_fir_filter_xxx_0.set_taps(firdes.complex_band_pass(self.rf_gain, self.samp_rate, -3500, -200, 100) if self.sideband != 0 else firdes.complex_band_pass(self.rf_gain, self.samp_rate, 200, 3500, 100))
+
+    def get_volume(self):
+        return self.volume
+
+    def set_volume(self, volume):
+        self.volume = volume
+        self.blocks_multiply_const_vxx_0.set_k(self.volume)
+
+    def get_tune(self):
+        return self.tune
+
+    def set_tune(self, tune):
+        self.tune = tune
+        self.freq_xlating_fir_filter_xxx_0.set_center_freq(self.tune)
+
+    def get_ssb_factor(self):
+        return self.ssb_factor
+
+    def set_ssb_factor(self, ssb_factor):
+        self.ssb_factor = ssb_factor
+
+    def get_samp_rate(self):
+        return self.samp_rate
+
+    def set_samp_rate(self, samp_rate):
+        self.samp_rate = samp_rate
+        self.blocks_throttle2_0.set_sample_rate(self.samp_rate)
+        self.freq_xlating_fir_filter_xxx_0.set_taps(firdes.complex_band_pass(self.rf_gain, self.samp_rate, -3500, -200, 100) if self.sideband != 0 else firdes.complex_band_pass(self.rf_gain, self.samp_rate, 200, 3500, 100))
+        self.qtgui_sink_x_1.set_frequency_range(0, self.samp_rate)
+        self.qtgui_sink_x_1_0.set_frequency_range(0, self.samp_rate)
 
     def get_rf_gain(self):
         return self.rf_gain
 
     def set_rf_gain(self, rf_gain):
         self.rf_gain = rf_gain
-        self.filter_fft_low_pass_filter_0.set_taps(firdes.low_pass(self.rf_gain, self.audio_rate, 3500, 50, window.WIN_HAMMING, 6.76))
+        self.freq_xlating_fir_filter_xxx_0.set_taps(firdes.complex_band_pass(self.rf_gain, self.samp_rate, -3500, -200, 100) if self.sideband != 0 else firdes.complex_band_pass(self.rf_gain, self.samp_rate, 200, 3500, 100))
 
-    def get_decim_samp_rate(self):
-        return self.decim_samp_rate
+    def get_rf_decim(self):
+        return self.rf_decim
 
-    def set_decim_samp_rate(self, decim_samp_rate):
-        self.decim_samp_rate = decim_samp_rate
+    def set_rf_decim(self, rf_decim):
+        self.rf_decim = rf_decim
+
+    def get_audio_rate(self):
+        return self.audio_rate
+
+    def set_audio_rate(self, audio_rate):
+        self.audio_rate = audio_rate
+        self.qtgui_sink_x_0.set_frequency_range(0, self.audio_rate)
 
 
 
