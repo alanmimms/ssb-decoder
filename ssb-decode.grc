@@ -45,6 +45,30 @@ blocks:
     coordinate: [272, 104.0]
     rotation: 0
     state: enabled
+- name: baseband_hi
+  id: variable
+  parameters:
+    comment: ''
+    value: '3500'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1072, 104.0]
+    rotation: 0
+    state: enabled
+- name: baseband_lo
+  id: variable
+  parameters:
+    comment: ''
+    value: '300'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1072, 24.0]
+    rotation: 0
+    state: enabled
 - name: rf_decim
   id: variable
   parameters:
@@ -118,18 +142,6 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [400, 16.0]
-    rotation: 0
-    state: enabled
-- name: ssb_factor
-  id: variable
-  parameters:
-    comment: ''
-    value: -1.0  if sideband != 0 else 1.0
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [512, 112.0]
     rotation: 0
     state: enabled
 - name: tune
@@ -351,8 +363,9 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     samp_rate: samp_rate
-    taps: firdes.complex_band_pass(rf_gain, samp_rate, -3500, -200, 100) if sideband
-      != 0 else firdes.complex_band_pass(rf_gain, samp_rate, 200, 3500, 100)
+    taps: firdes.complex_band_pass(rf_gain, samp_rate, -baseband_hi, -baseband_lo,
+      100) if sideband != 0 else firdes.complex_band_pass(rf_gain, samp_rate, baseband_lo,
+      baseband_hi, 100)
     type: ccc
   states:
     bus_sink: false
@@ -361,91 +374,126 @@ blocks:
     coordinate: [800, 312.0]
     rotation: 0
     state: enabled
-- name: qtgui_sink_x_0
-  id: qtgui_sink_x
+- name: qtgui_waterfall_sink_x_0
+  id: qtgui_waterfall_sink_x
   parameters:
     affinity: ''
     alias: ''
-    bw: audio_rate
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    axislabels: 'True'
+    bw: samp_rate/rf_decim
+    color1: '0'
+    color10: '0'
+    color2: '0'
+    color3: '0'
+    color4: '0'
+    color5: '0'
+    color6: '0'
+    color7: '0'
+    color8: '0'
+    color9: '0'
     comment: ''
     fc: '0'
     fftsize: '1024'
+    freqhalf: 'True'
+    grid: 'True'
     gui_hint: ''
+    int_max: '10'
+    int_min: '-140'
+    label1: ''
+    label10: ''
+    label2: ''
+    label3: ''
+    label4: ''
+    label5: ''
+    label6: ''
+    label7: ''
+    label8: ''
+    label9: ''
+    legend: 'True'
     maxoutbuf: '0'
     minoutbuf: '0'
-    name: '"AF"'
-    plotconst: 'False'
-    plotfreq: 'False'
-    plottime: 'False'
-    plotwaterfall: 'True'
-    rate: '10'
+    name: '"Baseband"'
+    nconnections: '1'
     showports: 'False'
-    showrf: 'False'
     type: complex
+    update_time: '0.05'
     wintype: window.WIN_BLACKMAN_hARRIS
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [448, 528.0]
+    coordinate: [1056, 368.0]
     rotation: 0
     state: enabled
-- name: qtgui_sink_x_1
-  id: qtgui_sink_x
+- name: qtgui_waterfall_sink_x_1
+  id: qtgui_waterfall_sink_x
   parameters:
     affinity: ''
     alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    axislabels: 'True'
     bw: samp_rate
+    color1: '3'
+    color10: '0'
+    color2: '0'
+    color3: '0'
+    color4: '0'
+    color5: '0'
+    color6: '0'
+    color7: '0'
+    color8: '0'
+    color9: '0'
     comment: ''
     fc: '0'
-    fftsize: '2048'
+    fftsize: '1024'
+    freqhalf: 'True'
+    grid: 'True'
     gui_hint: ''
+    int_max: '10'
+    int_min: '-140'
+    label1: ''
+    label10: ''
+    label2: ''
+    label3: ''
+    label4: ''
+    label5: ''
+    label6: ''
+    label7: ''
+    label8: ''
+    label9: ''
+    legend: 'True'
     maxoutbuf: '0'
     minoutbuf: '0'
     name: '"RF"'
-    plotconst: 'False'
-    plotfreq: 'False'
-    plottime: 'False'
-    plotwaterfall: 'True'
-    rate: '50'
+    nconnections: '1'
     showports: 'False'
-    showrf: 'False'
     type: complex
+    update_time: '0.05'
     wintype: window.WIN_BLACKMAN_hARRIS
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [800, 184.0]
-    rotation: 0
-    state: enabled
-- name: qtgui_sink_x_1_0
-  id: qtgui_sink_x
-  parameters:
-    affinity: ''
-    alias: ''
-    bw: samp_rate
-    comment: ''
-    fc: '0'
-    fftsize: '2048'
-    gui_hint: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    name: '"baseband"'
-    plotconst: 'False'
-    plotfreq: 'False'
-    plottime: 'False'
-    plotwaterfall: 'True'
-    rate: '50'
-    showports: 'False'
-    showrf: 'False'
-    type: complex
-    wintype: window.WIN_BLACKMAN_hARRIS
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1056, 360.0]
+    coordinate: [712, 192.0]
     rotation: 0
     state: enabled
 - name: rational_resampler_xxx_0
@@ -500,14 +548,13 @@ connections:
 - [blocks_complex_to_real_0, '0', rational_resampler_xxx_0, '0']
 - [blocks_float_to_complex_0, '0', blocks_throttle2_0, '0']
 - [blocks_multiply_const_vxx_0, '0', blocks_complex_to_real_0, '0']
-- [blocks_multiply_const_vxx_0, '0', qtgui_sink_x_0, '0']
 - [blocks_selector_0, '0', blocks_multiply_const_vxx_0, '0']
 - [blocks_swapiq_0, '0', blocks_selector_0, '1']
 - [blocks_throttle2_0, '0', analog_agc2_xx_0, '0']
-- [blocks_throttle2_0, '0', qtgui_sink_x_1, '0']
+- [blocks_throttle2_0, '0', qtgui_waterfall_sink_x_1, '0']
 - [blocks_wavfile_source_0, '0', blocks_float_to_complex_0, '0']
 - [blocks_wavfile_source_0, '1', blocks_float_to_complex_0, '1']
-- [freq_xlating_fir_filter_xxx_0, '0', qtgui_sink_x_1_0, '0']
+- [freq_xlating_fir_filter_xxx_0, '0', qtgui_waterfall_sink_x_0, '0']
 - [freq_xlating_fir_filter_xxx_0, '0', virtual_sink_0, '0']
 - [rational_resampler_xxx_0, '0', audio_sink_0, '0']
 - [virtual_source_0, '0', blocks_multiply_const_vxx_0, '0']
